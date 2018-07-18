@@ -2,7 +2,7 @@
 Get the refractive index from Delta and Psi
 
 
-Input is a .csv file containing the following data:
+Input should be a .csv file containing the following data:
 
 wavelenght,psi,delta
 
