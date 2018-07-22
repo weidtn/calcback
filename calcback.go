@@ -173,7 +173,7 @@ func plot_nk(lambdas, ns, ks []float64) {
 }
 func main() {
 	defer timeTrack(time.Now(), "main")
-	file := "/home/aramus/Forschungspraktikum/tmm/300nmSiO2.csv"
+	file := "300nmSiO2.csv"
 	df := read_csv(file)
 	// fmt.Println(df)
 	// deltapsiplot(df)
