@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/kniren/gota/dataframe"
 	"github.com/kniren/gota/series"
+	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
-	// "gonum.org/v1/plot/plotutil"
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/plot/plotutil"
 	"gonum.org/v1/plot/vg"
 	"io/ioutil"
 	"log"
@@ -26,7 +26,13 @@ const (
 	imrange         = 25                 // imaginary part from 0.1 to ...
 )
 
+func timeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	log.Printf("%s took %s", name, elapsed)
+}
+
 func read_csv(file string) dataframe.DataFrame {
+	defer timeTrack(time.Now(), "read_csv")
 	content, err := ioutil.ReadFile(file)
 	if err != nil {
 		fmt.Print(err)
@@ -39,8 +45,7 @@ func read_csv(file string) dataframe.DataFrame {
 	return data
 }
 
-func save_plot(df dataframe.DataFrame) {
-	// lambda := df.Col("Lambda").Int()
+func deltapsiplot(df dataframe.DataFrame) {
 	psis := df.Col("Psi").Float()
 	deltas := df.Col("Delta").Float()
 	psi := make(plotter.XYs, df.Nrow())
@@ -56,13 +61,11 @@ func save_plot(df dataframe.DataFrame) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	p.Add(plotter.NewGrid())
-	l1, _ := plotter.NewLine(psi)
-	l2, _ := plotter.NewLine(delta)
-	p.Add(l1, l2)
+	err = plotutil.AddLines(p, "Delta", delta, "Psi", psi)
 	if err := p.Save(4*vg.Inch, 4*vg.Inch, "test.png"); err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Plot saved as test.png")
 }
 
 func calc_rho(lambda float64) (n_rho [][]complex128) {
@@ -124,19 +127,12 @@ func compare(n_rho [][]complex128, psi float64, delta float64) (n complex128) { 
 	// n_rho [][0] contains n_L
 	// n_rho [][1] contains rho
 	rho_giv := cmplx.Tan(complex(psi, 0)) * cmplx.Exp(complex(0, delta))
-	// var min float64
-	// var minidx int
 	var deltas []float64 // delta = difference between given and calculated rho
 	for i := range n_rho {
 		delta := cmplx.Abs(n_rho[i][1] - rho_giv) //Problem is here
 		deltas = append(deltas, delta)
 	}
 	idx, _ := ArgMin(deltas)
-	// fmt.Println(deltas)
-	fmt.Println(idx-1, deltas[idx-1])
-	fmt.Println(idx, deltas[idx])
-	fmt.Println(idx+1, deltas[idx+1])
-	fmt.Println(idx+2, deltas[idx+2])
 	return n_rho[idx][0]
 }
 
@@ -153,30 +149,52 @@ func ArgMin(array []float64) (int, float64) {
 	return idx, min
 
 }
+
+func plot_nk(lambdas, ns, ks []float64) {
+	n := make(plotter.XYs, len(ns))
+	k := make(plotter.XYs, len(ks))
+
+	for i, lambda := range lambdas {
+		n[i].X = lambda
+		n[i].Y = ns[i]
+		k[i].X = lambda
+		k[i].Y = ks[i]
+	}
+	p, err := plot.New()
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = plotutil.AddLines(p, "n", n, "k", k)
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, "nk.png"); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Plot saved as nk.png")
+
+}
 func main() {
+	defer timeTrack(time.Now(), "main")
 	file := "/home/aramus/Forschungspraktikum/tmm/300nmSiO2.csv"
-	starttime := time.Now()
 	df := read_csv(file)
+	// fmt.Println(df)
+	// deltapsiplot(df)
 	nseries := series.New([]float64{}, series.Float, "n")
 	kseries := series.New([]float64{}, series.Float, "k")
-	// fmt.Println(df)
-	i := 0
-	lambda := 300.0
-	// for i, lambda := range df.Col("lambda").Float() {
-	rhodata := calc_rho(lambda)
-	delta := df.Elem(i, 1).Float()
-	psi := df.Elem(i, 2).Float()
-	n := compare(rhodata, psi, delta)
-	// fmt.Println(rhodata)
-	nseries.Append(real(n))
-	kseries.Append(imag(n))
-	// fmt.Println(df.Elem(i, 0), real(n))
-	// fmt.Println(real(n))
-	// fmt.Println(imag(n))
-	// }
-	// fmt.Println(n)
-
-	elapsed := time.Since(starttime)
-	fmt.Printf("Done in %s", elapsed)
-
+	// i := 0
+	// lambda := 300.0
+	for i, lambda := range df.Col("lambda").Float() {
+		rhodata := calc_rho(lambda)
+		delta := df.Elem(i, 1).Float()
+		psi := df.Elem(i, 2).Float()
+		n := compare(rhodata, psi, delta)
+		// fmt.Println(rhodata)
+		nseries.Append(real(n))
+		kseries.Append(imag(n))
+		// fmt.Println(df.Elem(i, 0), real(n))
+		// fmt.Println(real(n))
+		// fmt.Println(imag(n))
+	}
+	df = df.Mutate(nseries)
+	df = df.Mutate(kseries)
+	plot_nk(df.Col("lambda").Float(), df.Col("n").Float(), df.Col("k").Float())
+	fmt.Println(df)
 }
