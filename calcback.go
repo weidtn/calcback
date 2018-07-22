@@ -7,6 +7,7 @@ import (
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	// "gonum.org/v1/plot/plotutil"
+	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/plot/vg"
 	"io/ioutil"
 	"log"
@@ -16,11 +17,15 @@ import (
 	"time"
 )
 
-const phi_i = 70 * math.Pi / 180 // incident angle in radians
-const d_L = 100                  // layer thickness [nm]
-const step = 100                 // step size
-const n_air float64 = 1          // refractive index of air
-const n_S = 3.6449               // refractive index of substrate
+const (
+	phi_i           = 70 * math.Pi / 180 // incident angle in radians
+	d_L             = 100                // layer thickness [nm]
+	step            = 100                // step size
+	n_air   float64 = 1                  // refractive index of air
+	n_S             = 3.6449             // refractive index of substrate
+	rerange         = 5                  // real part from 0.1 to ...
+	imrange         = 25                 // imaginary part from 0.1 to ...
+)
 
 func read_csv(file string) dataframe.DataFrame {
 	content, err := ioutil.ReadFile(file)
@@ -70,6 +75,16 @@ func calc_rho(data dataframe.DataFrame) (rho complex128, difference float64) {
 	// step := 0.001
 	n_L := start
 	rho_giv := cmplx.Tan(complex(psi, 0)) * cmplx.Exp(complex(0, delta))
+	//make the slice containing n+ik
+	lsp_re := make([]float64, 100)
+	lsp_im := make([]float64, 100)
+	var nslice []complex128
+	for _, x := range floats.Span(lsp_re, 0.1, 5) {
+		for _, y := range floats.Span(lsp_im, 0.1, imrange) {
+			c := complex(x, y)
+			nslice = append(nslice, c)
+		}
+	}
 	// total reflection:
 	x := (math.Sin(phi_i) * n_air / n_L)
 	if x > 1 || x < -1 || x == 0 {
