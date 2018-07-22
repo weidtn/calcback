@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/kniren/gota/dataframe"
-	// "github.com/kniren/gota/series"
+	"github.com/kniren/gota/series"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	// "gonum.org/v1/plot/plotutil"
@@ -20,7 +20,6 @@ import (
 const (
 	phi_i           = 70 * math.Pi / 180 // incident angle in radians
 	d_L             = 100                // layer thickness [nm]
-	step            = 100                // step size
 	n_air   float64 = 1                  // refractive index of air
 	n_S             = 3.6449             // refractive index of substrate
 	rerange         = 5                  // real part from 0.1 to ...
@@ -66,69 +65,117 @@ func save_plot(df dataframe.DataFrame) {
 	}
 }
 
-func calc_rho(data dataframe.DataFrame) (rho complex128, difference float64) {
-	// Get variables from dataframe:
-	lambda := data.Elem(0, 0).Float()
-	delta := data.Elem(0, 1).Float()
-	psi := data.Elem(0, 2).Float()
-	var start float64 = 1.501
-	// step := 0.001
-	n_L := start
-	rho_giv := cmplx.Tan(complex(psi, 0)) * cmplx.Exp(complex(0, delta))
-	//make the slice containing n+ik
-	lsp_re := make([]float64, 100)
-	lsp_im := make([]float64, 100)
+func calc_rho(lambda float64) (n_rho [][]complex128) {
+	var rho_L complex128
+	var output [][]complex128
+	// make a slice containing every possible n_L = n+ik
+	n := make([]float64, 100)
+	k := make([]float64, 100)
 	var nslice []complex128
-	for _, x := range floats.Span(lsp_re, 0.1, 5) {
-		for _, y := range floats.Span(lsp_im, 0.1, imrange) {
+	for _, x := range floats.Span(n, 0.1, rerange) {
+		for _, y := range floats.Span(k, 0.1, imrange) {
 			c := complex(x, y)
 			nslice = append(nslice, c)
 		}
 	}
-	// total reflection:
-	x := (math.Sin(phi_i) * n_air / n_L)
-	if x > 1 || x < -1 || x == 0 {
-		// continue
-		return cmplx.NaN(), math.NaN()
+
+	//calculate for every n_L in nslice
+	for _, n := range nslice {
+		n_L := real(n)
+		// n_L := n
+		// TODO total reflection:
+		// Use real only for Snells law?
+		//
+		x := (math.Sin(phi_i) * n_air / n_L)
+		if x > 1 || x < -1 || x == 0 {
+			continue
+			//  append NaN?
+		}
+		// Calculate Delta and Psi for given lambda
+
+		// Snells law:
+		phi_L := math.Asin((math.Sin(phi_i) * n_air) / n_L)
+		phi_S := math.Asin((math.Sin(phi_i) * n_air) / n_S)
+
+		// Fresnel equations:
+		//
+		// air/layer:
+		rs_al := (n_air*math.Cos(phi_i) - n_L*math.Cos(phi_L)) / n_air * math.Cos(phi_i+n_L*math.Cos(phi_L))
+		rp_al := (n_L*math.Cos(phi_i)-n_air*math.Cos(phi_L))/n_L*math.Cos(phi_i) + n_air*math.Cos(phi_L)
+
+		// layer/substrate:
+		rs_ls := n_L*math.Cos(phi_L) - n_S*math.Cos(phi_S)/n_L*math.Cos(phi_L) + n_S*math.Cos(phi_S)
+		rp_ls := n_S*math.Cos(phi_L) - n_L*math.Cos(phi_S)/n_S*math.Cos(phi_L) + n_L*math.Cos(phi_S)
+
+		beta := (2 * math.Pi / lambda) * d_L * n_L * math.Cos(phi_L)
+
+		rp_L := (complex(rp_al, 0) * complex(rp_ls, 0) * cmplx.Exp(complex(0, 2*beta))) / (1 + complex(rp_al, 0)*complex(rp_ls, 0)*cmplx.Exp(complex(0, 2*beta)))
+
+		rs_L := (complex(rs_al, 0) * complex(rs_ls, 0) * cmplx.Exp(complex(0, 2*beta))) / (1 + complex(rs_al, 0)*complex(rs_ls, 0)*cmplx.Exp(complex(0, 2*beta)))
+
+		rho_L = rp_L / rs_L
+		row := []complex128{n, rho_L}
+		output = append(output, row)
 	}
-	// Calculate Delta and Psi for given lambda
+	return output
+}
 
-	// Snells law:
-	phi_L := math.Asin((math.Sin(phi_i) * n_air) / n_L)
-	phi_S := math.Asin((math.Sin(phi_i) * n_air) / n_S)
+func compare(n_rho [][]complex128, psi float64, delta float64) (n complex128) { // TODO Complex abs is not real abs.
+	// n_rho [][0] contains n_L
+	// n_rho [][1] contains rho
+	rho_giv := cmplx.Tan(complex(psi, 0)) * cmplx.Exp(complex(0, delta))
+	// var min float64
+	// var minidx int
+	var deltas []float64 // delta = difference between given and calculated rho
+	for i := range n_rho {
+		delta := cmplx.Abs(n_rho[i][1] - rho_giv) //Problem is here
+		deltas = append(deltas, delta)
+	}
+	idx, _ := ArgMin(deltas)
+	// fmt.Println(deltas)
+	fmt.Println(idx-1, deltas[idx-1])
+	fmt.Println(idx, deltas[idx])
+	fmt.Println(idx+1, deltas[idx+1])
+	fmt.Println(idx+2, deltas[idx+2])
+	return n_rho[idx][0]
+}
 
-	// Fresnel equations:
+func ArgMin(array []float64) (int, float64) {
+	// finds minimum in an array and returns index and value
+	var min float64 = array[0]
+	var idx int
+	for i, value := range array {
+		if value < min {
+			min = value
+			idx = i
+		}
+	}
+	return idx, min
 
-	// air/layer:
-	rs_al := (n_air*math.Cos(phi_i) - n_L*math.Cos(phi_L)) / n_air * math.Cos(phi_i+n_L*math.Cos(phi_L))
-	rp_al := (n_L*math.Cos(phi_i)-n_air*math.Cos(phi_L))/n_L*math.Cos(phi_i) + n_air*math.Cos(phi_L)
-
-	// layer/substrate:
-	rs_ls := n_L*math.Cos(phi_L) - n_S*math.Cos(phi_S)/n_L*math.Cos(phi_L) + n_S*math.Cos(phi_S)
-	rp_ls := n_S*math.Cos(phi_L) - n_L*math.Cos(phi_S)/n_S*math.Cos(phi_L) + n_L*math.Cos(phi_S)
-
-	beta := (2 * math.Pi / lambda) * d_L * n_L * math.Cos(phi_L)
-
-	rp_L := (complex(rp_al, 0) * complex(rp_ls, 0) * cmplx.Exp(complex(0, 2*beta))) / (1 + complex(rp_al, 0)*complex(rp_ls, 0)*cmplx.Exp(complex(0, 2*beta)))
-
-	rs_L := (complex(rs_al, 0) * complex(rs_ls, 0) * cmplx.Exp(complex(0, 2*beta))) / (1 + complex(rs_al, 0)*complex(rs_ls, 0)*cmplx.Exp(complex(0, 2*beta)))
-
-	rho_L := rp_L / rs_L
-	diff := cmplx.Abs(rho_L - rho_giv)
-	fmt.Println(lambda)
-	return rho_L, diff
 }
 func main() {
 	file := "/home/aramus/Forschungspraktikum/tmm/300nmSiO2.csv"
 	starttime := time.Now()
 	df := read_csv(file)
+	nseries := series.New([]float64{}, series.Float, "n")
+	kseries := series.New([]float64{}, series.Float, "k")
 	// fmt.Println(df)
 	i := 0
-	// for i := range df.Col("lambda").Float() {
-	// fmt.Printf("%v  \n", calc_rho(df.Subset(i)))
+	lambda := 300.0
+	// for i, lambda := range df.Col("lambda").Float() {
+	rhodata := calc_rho(lambda)
+	delta := df.Elem(i, 1).Float()
+	psi := df.Elem(i, 2).Float()
+	n := compare(rhodata, psi, delta)
+	// fmt.Println(rhodata)
+	nseries.Append(real(n))
+	kseries.Append(imag(n))
+	// fmt.Println(df.Elem(i, 0), real(n))
+	// fmt.Println(real(n))
+	// fmt.Println(imag(n))
 	// }
-	rho, diff := calc_rho(df.Subset(i))
-	fmt.Printf("%.5f with a difference of %.5f \n", rho, diff)
+	// fmt.Println(n)
+
 	elapsed := time.Since(starttime)
 	fmt.Printf("Done in %s", elapsed)
 
