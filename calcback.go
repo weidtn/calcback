@@ -19,7 +19,7 @@ import (
 
 const (
 	phi_i           = 70 * math.Pi / 180 // incident angle in radians
-	d_L             = 100                // layer thickness [nm]
+	d_L             = 300                // layer thickness [nm]
 	n_air   float64 = 1                  // refractive index of air
 	n_S             = 3.6449             // refractive index of substrate
 	rerange         = 5                  // real part from 0.1 to ...
