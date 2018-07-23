@@ -74,6 +74,7 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 	// make a slice containing every possible n_L = n+ik
 	n := make([]float64, 100)
 	k := make([]float64, 100)
+	var phiLs []complex128
 	var nslice []complex128
 	for _, x := range floats.Span(n, 1.0, rerange) {
 		for _, y := range floats.Span(k, 0.1, imrange) {
@@ -84,9 +85,8 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 
 	//calculate for every n_L in nslice
 	for _, n := range nslice {
-		n_L := real(n)
-		// n_L := n
-		// TODO total reflection:
+		n_L := n
+		// TODO complex128 instead of float64:
 		//
 		x := (math.Sin(phi_i) * n_air / n_L)
 		if x > 1 || x < -1 || x == 0 {
@@ -99,6 +99,7 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 		phi_L := math.Asin((math.Sin(phi_i) * n_air) / n_L)
 		phi_S := math.Asin((math.Sin(phi_i) * n_air) / n_S)
 
+		phiLs = append(phiLs, phi_L)
 		// Fresnel equations:
 		//
 		// air/layer:
@@ -119,16 +120,17 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 		row := []complex128{n, rho_L}
 		output = append(output, row)
 	}
+	fmt.Println(phiLs)
 	return output
 }
 
-func compare(n_rho [][]complex128, psi float64, delta float64) (n complex128) { // TODO Complex abs is not real abs.
+func compare(n_rho [][]complex128, psi float64, delta float64) (n complex128) {
 	// n_rho [][0] contains n_L
 	// n_rho [][1] contains rho
 	rho_giv := cmplx.Tan(complex(psi, 0)) * cmplx.Exp(complex(0, delta))
 	var deltas []float64 // delta = difference between given and calculated rho
 	for i := range n_rho {
-		delta := cmplx.Abs(n_rho[i][1] - rho_giv) //Problem is here
+		delta := cmplx.Abs(n_rho[i][1] - rho_giv)
 		deltas = append(deltas, delta)
 	}
 	idx, _ := ArgMin(deltas)
@@ -150,6 +152,7 @@ func ArgMin(array []float64) (int, float64) {
 }
 
 func plot_nk(lambdas, ns, ks []float64) {
+	defer timeTrack(time.Now(), "plot_nk()")
 	n := make(plotter.XYs, len(ns))
 	k := make(plotter.XYs, len(ks))
 
