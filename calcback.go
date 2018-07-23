@@ -22,7 +22,7 @@ const (
 	d_L             = 300                // layer thickness [nm]
 	n_air   float64 = 1                  // refractive index of air
 	n_S             = 3.6449             // refractive index of substrate
-	rerange         = 5                  // real part from 0.1 to ...
+	rerange         = 3.8                // real part from 0.1 to ...
 	imrange         = 25                 // imaginary part from 0.1 to ...
 )
 
@@ -75,7 +75,7 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 	n := make([]float64, 100)
 	k := make([]float64, 100)
 	var nslice []complex128
-	for _, x := range floats.Span(n, 0.1, rerange) {
+	for _, x := range floats.Span(n, 1.0, rerange) {
 		for _, y := range floats.Span(k, 0.1, imrange) {
 			c := complex(x, y)
 			nslice = append(nslice, c)
@@ -87,7 +87,6 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 		n_L := real(n)
 		// n_L := n
 		// TODO total reflection:
-		// Use real only for Snells law?
 		//
 		x := (math.Sin(phi_i) * n_air / n_L)
 		if x > 1 || x < -1 || x == 0 {
