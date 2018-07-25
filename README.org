@@ -1,5 +1,5 @@
 # calcback
-**Currently not working as intended**
+*Currently not working as intended*
 * What is calcback?
 A tool to calculate the refractive indices of a layer, by using the ellipsometric parameters Delta and Psi 
 
@@ -17,7 +17,7 @@ You can use the "300nmSiO2.csv" as an example file
  - [ ] Output (lambda, n, k) into a .csv
 
 
-* The **Goal**:
+* The *Goal*:
 Get a programm to calculate refractive indices for different simulated layers (my python script) made of multiple dielectric/metal periods (eg. 10 times 5nm Ag + 5nm SiO2).
 
 
