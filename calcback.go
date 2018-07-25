@@ -1,9 +1,11 @@
 /*
-Calculate the refractive index r_i = n + ik from the ellipsometric parameters Delta and Psi.
+Calculate the refractive index r_i = n + ik from the ellipsometric parameters Delta and Psi of a layer (300nm SiO2) on top of a substrate (Si-Wafer).
 Input must be a .csv file
 output will be a .png file (TODO and a .csv later?)
 
 Currently the rerange and imrange are set for SiO2, which has 0 absorption (k), and n should be around 1.3-1.4
+TODO: After I get the correct results, add a worker pool and goroutines to calculate every wavelenght in an own goroutine
+TODO: Add the refractive index of the substrate to the input .csv (not in this project), and use it here
 */
 package main
 
@@ -94,19 +96,18 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 		n_L := real(n)
 		// n_L := n
 		// TODO complex128 instead of float64:
-		//
+		// the following 4 lines are not needed then
 		x := (math.Sin(phi_i) * n_air / n_L)
 		if x > 1 || x < -1 || x == 0 {
 			continue
-			//  append NaN?
 		}
 		// Calculate Delta and Psi for given lambda
 
 		// Snells law:
+		// TODO cplx.Asin()
 		phi_L := math.Asin((math.Sin(phi_i) * n_air) / n_L)
 		phi_S := math.Asin((math.Sin(phi_L) * n_L) / n_S)
 
-		// phiLs = append(phiLs, phi_L)
 		// Fresnel equations:
 		//
 		// air/layer:
@@ -131,8 +132,7 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 }
 
 func compare(n_rho [][]complex128, psi float64, delta float64) (n complex128) {
-	// n_rho [][0] contains n_L
-	// n_rho [][1] contains rho
+	// TODO: Check if this works as intended
 	rho_giv := cmplx.Tan(complex(psi, 0)) * cmplx.Exp(complex(0, delta))
 	var deltas []float64 // delta = difference between given and calculated rho
 	for i := range n_rho {
@@ -183,10 +183,9 @@ func main() {
 	defer timeTrack(time.Now(), "main")
 	file := "300nmSiO2.csv"
 	df := read_csv(file)
-	// fmt.Println(df)
-	// deltapsiplot(df)
 	nseries := series.New([]float64{}, series.Float, "n")
 	kseries := series.New([]float64{}, series.Float, "k")
+	//uncomment this and comment the for-loop to just calculate for 1 value
 	// i := 0
 	// lambda := 300.0
 	for i, lambda := range df.Col("lambda").Float() {
@@ -194,15 +193,11 @@ func main() {
 		delta := df.Elem(i, 1).Float()
 		psi := df.Elem(i, 2).Float()
 		n := compare(rhodata, psi, delta)
-		// fmt.Println(rhodata)
 		nseries.Append(real(n))
 		kseries.Append(imag(n))
-		// fmt.Println(df.Elem(i, 0), real(n))
-		// fmt.Println(real(n))
-		// fmt.Println(imag(n))
 	}
 	df = df.Mutate(nseries)
 	df = df.Mutate(kseries)
-	plot_nk(df.Col("lambda").Float(), df.Col("n").Float(), df.Col("k").Float())
+	// plot_nk(df.Col("lambda").Float(), df.Col("n").Float(), df.Col("k").Float())
 	fmt.Println(df)
 }
