@@ -1,3 +1,10 @@
+/*
+Calculate the refractive index r_i = n + ik from the ellipsometric parameters Delta and Psi.
+Input must be a .csv file
+output will be a .png file (TODO and a .csv later?)
+
+Currently the rerange and imrange are set for SiO2, which has 0 absorption (k), and n should be around 1.3-1.4
+*/
 package main
 
 import (
@@ -74,7 +81,6 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 	// make a slice containing every possible n_L = n+ik
 	n := make([]float64, 100)
 	k := make([]float64, 100)
-	var phiLs []complex128
 	var nslice []complex128
 	for _, x := range floats.Span(n, 1.0, rerange) {
 		for _, y := range floats.Span(k, 0.1, imrange) {
@@ -85,7 +91,8 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 
 	//calculate for every n_L in nslice
 	for _, n := range nslice {
-		n_L := n
+		n_L := real(n)
+		// n_L := n
 		// TODO complex128 instead of float64:
 		//
 		x := (math.Sin(phi_i) * n_air / n_L)
@@ -97,9 +104,9 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 
 		// Snells law:
 		phi_L := math.Asin((math.Sin(phi_i) * n_air) / n_L)
-		phi_S := math.Asin((math.Sin(phi_i) * n_air) / n_S)
+		phi_S := math.Asin((math.Sin(phi_L) * n_L) / n_S)
 
-		phiLs = append(phiLs, phi_L)
+		// phiLs = append(phiLs, phi_L)
 		// Fresnel equations:
 		//
 		// air/layer:
@@ -120,7 +127,6 @@ func calc_rho(lambda float64) (n_rho [][]complex128) {
 		row := []complex128{n, rho_L}
 		output = append(output, row)
 	}
-	fmt.Println(phiLs)
 	return output
 }
 
