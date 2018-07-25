@@ -22,6 +22,9 @@ You can use the "300nmSiO2.csv" as an example file, plotted it looks like this (
 * The Goal:
 Get a programm to calculate refractive indices for different simulated layers (my python script) made of multiple dielectric/metal periods (eg. 10 times 5nm Ag + 5nm SiO2).
 
+A plot for 300 nm SiO2 on top of a silicon wafer should look like this:
+
+[[file:r_index_SiO2.png]]
 
 
 
