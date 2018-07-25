@@ -13,11 +13,11 @@ You can use the "300nmSiO2.csv" as an example file
  - [ ] check the formulas, get the right results (at first just for SiO2, with just real n_L)
  - [ ] Use complex refractive index, not just real(n_L)
  - [ ] Use different resolutions of n_L, to minimize ammount of calculations
- - [ ] add concurrency
+ - [ ] add concurrency (for each lambda, maybe each calc_ho())
  - [ ] Output (lambda, n, k) into a .csv
 
 
-* The *Goal*:
+* The Goal:
 Get a programm to calculate refractive indices for different simulated layers (my python script) made of multiple dielectric/metal periods (eg. 10 times 5nm Ag + 5nm SiO2).
 
 
