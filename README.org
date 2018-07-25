@@ -7,7 +7,9 @@ Input should be a .csv file containing the following data:
 
 wavelenght,psi,delta
 
-You can use the "300nmSiO2.csv" as an example file
+You can use the "300nmSiO2.csv" as an example file, it looks like this:
+
+[[file:input.png]]
 
 * TODO Work in Progress:
  - [ ] check the formulas, get the right results (at first just for SiO2, with just real n_L)
