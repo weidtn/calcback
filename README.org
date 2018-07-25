@@ -7,7 +7,7 @@ Input should be a .csv file containing the following data:
 
 wavelenght,psi,delta
 
-You can use the "300nmSiO2.csv" as an example file, it looks like this:
+You can use the "300nmSiO2.csv" as an example file, plotted it looks like this (Delta might need to get multiplied by -1)
 
 [[file:input.png]]
 
