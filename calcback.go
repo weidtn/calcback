@@ -33,7 +33,7 @@ const (
 	n_air    = complex(1,0)                  // refractive index of air
 	n_S             = complex(3.6449,0)             // refractive index of substrate
 	rerange         = 3.8                // real part from 0.1 to ...
-	imrange         = 25                 // imaginary part from 0.1 to ...
+	imrange         = 3                 // imaginary part from 0.1 to ...
 	cmplx_pi = complex(math.Pi, 0)
 )
 
@@ -88,7 +88,7 @@ func Calc_rho(lambdafloat float64) (n_rho [][]complex128) {
 	k := make([]float64, 100)
 	var nslice []complex128
 	for _, x := range floats.Span(n, 1.0, rerange) {
-		for _, y := range floats.Span(k, 0.1, imrange) {
+		for _, y := range floats.Span(k, 0.001, imrange) {
 			c := complex(x, y)
 			nslice = append(nslice, c)
 		}
@@ -114,18 +114,18 @@ func Calc_rho(lambdafloat float64) (n_rho [][]complex128) {
 		// Fresnel equations:
 		//
 		// air/layer:
-		rs_al := (n_air*cmplx.Cos(phi_i) - n_L*cmplx.Cos(phi_L)) / n_air * cmplx.Cos(phi_i+n_L*cmplx.Cos(phi_L))
-		rp_al := (n_L*cmplx.Cos(phi_i)-n_air*cmplx.Cos(phi_L))/n_L*cmplx.Cos(phi_i) + n_air*cmplx.Cos(phi_L)
+		rs_al := (n_air*cmplx.Cos(phi_i) - n_L*cmplx.Cos(phi_L)) / (n_air * cmplx.Cos(phi_i+n_L*cmplx.Cos(phi_L)))
+		rp_al := (n_L*cmplx.Cos(phi_i)-n_air*cmplx.Cos(phi_L))/(n_L*cmplx.Cos(phi_i) + n_air*cmplx.Cos(phi_L))
 
 		// layer/substrate:
-		rs_ls := n_L*cmplx.Cos(phi_L) - n_S*cmplx.Cos(phi_S)/n_L*cmplx.Cos(phi_L) + n_S*cmplx.Cos(phi_S)
-		rp_ls := n_S*cmplx.Cos(phi_L) - n_L*cmplx.Cos(phi_S)/n_S*cmplx.Cos(phi_L) + n_L*cmplx.Cos(phi_S)
+		rs_ls := (n_L*cmplx.Cos(phi_L) - n_S*cmplx.Cos(phi_S))/(n_L*cmplx.Cos(phi_L) + n_S*cmplx.Cos(phi_S))
+		rp_ls := (n_S*cmplx.Cos(phi_L) - n_L*cmplx.Cos(phi_S))/(n_S*cmplx.Cos(phi_L) + n_L*cmplx.Cos(phi_S))
 
 		beta := (2 * math.Pi / lambda) * d_L * n_L * cmplx.Cos(phi_L)
 
-		rp_L := (rp_al * rp_ls) * cmplx.Exp(2*beta) / (1 + rp_al)*rp_ls*cmplx.Exp(2*beta)
+		rp_L := ((rp_al + rp_ls) * cmplx.Exp(-2*beta)) / ((1 + rp_al)*rp_ls*cmplx.Exp(-2*beta))
 
-		rs_L := (rs_al * rs_ls) * cmplx.Exp(2*beta) / (1 + rs_al)*rs_ls*cmplx.Exp(2*beta)
+		rs_L := ((rs_al + rs_ls) * cmplx.Exp(-2*beta)) / ((1 + rs_al)*rs_ls*cmplx.Exp(-2*beta))
 
 		rho_L = rp_L / rs_L
 		row := []complex128{n, rho_L}
