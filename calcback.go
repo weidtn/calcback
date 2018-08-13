@@ -114,33 +114,18 @@ func Calc_rho(lambdafloat float64) (n_rho [][]complex128) {
 		// Fresnel equations:
 		//
 		// air/layer:
-<<<<<<< Updated upstream
 		rs_al := (n_air*cmplx.Cos(phi_i) - n_L*cmplx.Cos(phi_L)) / (n_air * cmplx.Cos(phi_i+n_L*cmplx.Cos(phi_L)))
 		rp_al := (n_L*cmplx.Cos(phi_i)-n_air*cmplx.Cos(phi_L))/(n_L*cmplx.Cos(phi_i) + n_air*cmplx.Cos(phi_L))
 
 		// layer/substrate:
 		rs_ls := (n_L*cmplx.Cos(phi_L) - n_S*cmplx.Cos(phi_S))/(n_L*cmplx.Cos(phi_L) + n_S*cmplx.Cos(phi_S))
 		rp_ls := (n_S*cmplx.Cos(phi_L) - n_L*cmplx.Cos(phi_S))/(n_S*cmplx.Cos(phi_L) + n_L*cmplx.Cos(phi_S))
-=======
-		rs_al := (n_air*math.Cos(phi_i) - n_L*math.Cos(phi_L)) / (n_air * math.Cos(phi_i+n_L*math.Cos(phi_L)))
-		rp_al := (n_L*math.Cos(phi_i)-n_air*math.Cos(phi_L))/(n_L*math.Cos(phi_i) + n_air*math.Cos(phi_L))
-
-		// layer/substrate:
-		rs_ls := (n_L*math.Cos(phi_L) - n_S*math.Cos(phi_S))/(n_L*math.Cos(phi_L) + n_S*math.Cos(phi_S))
-		rp_ls := (n_S*math.Cos(phi_L) - n_L*math.Cos(phi_S))/(n_S*math.Cos(phi_L) + n_L*math.Cos(phi_S))
->>>>>>> Stashed changes
 
 		beta := (2 * math.Pi / lambda) * d_L * n_L * cmplx.Cos(phi_L)
 
-<<<<<<< Updated upstream
 		rp_L := ((rp_al + rp_ls) * cmplx.Exp(-2*beta)) / ((1 + rp_al)*rp_ls*cmplx.Exp(-2*beta))
 
 		rs_L := ((rs_al + rs_ls) * cmplx.Exp(-2*beta)) / ((1 + rs_al)*rs_ls*cmplx.Exp(-2*beta))
-=======
-		rp_L := (complex(rp_al, 0) + complex(rp_ls, 0) * cmplx.Exp(complex(0, -2*beta))) / (1 + complex(rp_al, 0)*complex(rp_ls, 0)*cmplx.Exp(complex(0, -2*beta)))
-
-		rs_L := (complex(rs_al, 0) + complex(rs_ls, 0) * cmplx.Exp(complex(0, -2*beta))) / (1 + complex(rs_al, 0)*complex(rs_ls, 0)*cmplx.Exp(complex(0, -2*beta)))
->>>>>>> Stashed changes
 
 		rho_L = rp_L / rs_L
 		row := []complex128{n, rho_L}
