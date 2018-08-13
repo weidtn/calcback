@@ -14,6 +14,7 @@ Fresnel:
 [[file:rp.png]]
 
 Fujiwara:
+
 [[file:fujiwara.png]]
 
 Input should be a .csv file containing the following data:
