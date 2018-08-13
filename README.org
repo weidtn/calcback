@@ -3,11 +3,18 @@
 * What is calcback?
 A tool to calculate the refractive indices of a layer, by using the ellipsometric parameters Delta and Psi 
 It uses the following formulas:
+
 Snell's Law: 
+
 [[file:snell.png]]
+
 Fresnel:
+
 [[file:rs.png]]
 [[file:rp.png]]
+
+Fujiwara:
+[[file:fujiwara.png]]
 
 Input should be a .csv file containing the following data:
 
