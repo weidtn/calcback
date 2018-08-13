@@ -5,7 +5,6 @@ output will be a .png file (TODO and a .csv later?)
 
 Currently the rerange and imrange are set for SiO2, which has 0 absorption (k), and n should be around 1.3-1.4
 TODO: After I get the correct results, add a worker pool and goroutines to calculate every wavelenght in an own goroutine
-TODO: Add the refractive index of the substrate to the input .csv (not in this project), and use it here
 */
 package main
 
