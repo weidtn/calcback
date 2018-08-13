@@ -2,6 +2,12 @@
 *Currently not working as intended*
 * What is calcback?
 A tool to calculate the refractive indices of a layer, by using the ellipsometric parameters Delta and Psi 
+It uses the following formulas:
+Snell's Law: 
+[[file:snell.png]]
+Fresnel:
+[[file:rs.png]]
+[[file:rp.png]]
 
 Input should be a .csv file containing the following data:
 
@@ -12,8 +18,8 @@ You can use the "300nmSiO2.csv" as an example file, plotted it looks like this (
 [[file:input.png]]
 
 * TODO Work in Progress:
- - [ ] check the formulas, get the right results (at first just for SiO2, with just real n_L)
- - [ ] Use complex refractive index, not just real(n_L)
+ - [ ] check the formulas, get the right results (at first for SiO2, with just real n_L)
+ - [X] Use complex refractive index, not just real(n_L)
  - [ ] Use different resolutions of n_L, to minimize ammount of calculations
  - [ ] add concurrency (for each lambda, maybe each calc_ho())
  - [ ] Output (lambda, n, k) into a .csv
