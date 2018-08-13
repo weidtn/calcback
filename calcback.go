@@ -123,9 +123,9 @@ func Calc_rho(lambdafloat float64) (n_rho [][]complex128) {
 
 		beta := (2 * math.Pi / lambda) * d_L * n_L * cmplx.Cos(phi_L)
 
-		rp_L := ((rp_al + rp_ls) * cmplx.Exp(-2*beta)) / ((1 + rp_al)*rp_ls*cmplx.Exp(-2*beta))
+		rp_L := (rp_al + rp_ls * cmplx.Exp(-2*beta)) / (1 + rp_al*rp_ls*cmplx.Exp(-2*beta))
 
-		rs_L := ((rs_al + rs_ls) * cmplx.Exp(-2*beta)) / ((1 + rs_al)*rs_ls*cmplx.Exp(-2*beta))
+		rs_L := (rs_al + rs_ls * cmplx.Exp(-2*beta)) / (1 + rs_al*rs_ls*cmplx.Exp(-2*beta))
 
 		rho_L = rp_L / rs_L
 		row := []complex128{n, rho_L}
