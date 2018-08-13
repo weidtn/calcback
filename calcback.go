@@ -30,11 +30,10 @@ import (
 const (
 	phi_i           = 70 * math.Pi / 180 // incident angle in radians
 	d_L             = complex(300,0)                // layer thickness [nm]
-	n_air    = complex(1,0)                  // refractive index of air
-	n_S             = complex(3.6449,0)             // refractive index of substrate
-	rerange         = 3.8                // real part from 0.1 to ...
-	imrange         = 3                 // imaginary part from 0.1 to ...
-	cmplx_pi = complex(math.Pi, 0)
+	n_air           = complex(1,0)                  // refractive index of air
+	rerange         = 10               // real part from 0.1 to ...
+	imrange         = 10                 // imaginary part from 0.1 to ...
+	cmplx_pi        = complex(math.Pi, 0)
 )
 
 func timeTrack(start time.Time, name string) {
@@ -52,7 +51,7 @@ func read_csv(file string) dataframe.DataFrame {
 	df := dataframe.ReadCSV(ioContent,
 		dataframe.WithDelimiter(','),
 		dataframe.HasHeader(true))
-	data := df.Select([]int{0, 1, 2}) // We only need the first three columns
+	data := df.Select([]int{0, 1, 2, 5, 6}) // We only need the first three columns
 	return data
 }
 
@@ -79,11 +78,12 @@ func deltapsiplot(df dataframe.DataFrame) {
 	fmt.Println("Plot saved as test.png")
 }
 
-func Calc_rho(lambdafloat float64) (n_rho [][]complex128) {
+func Calc_rho(lambdafloat float64, n_S complex128) (n_rho [][]complex128) {
 	lambda := complex(lambdafloat,0)
 	var rho_L complex128
 	var output [][]complex128
 	// make a slice containing every possible n_L = n+ik
+	// TODO: Put this outside of the function
 	n := make([]float64, 100)
 	k := make([]float64, 100)
 	var nslice []complex128
@@ -93,29 +93,19 @@ func Calc_rho(lambdafloat float64) (n_rho [][]complex128) {
 			nslice = append(nslice, c)
 		}
 	}
-
 	//calculate for every n_L in nslice
-	for _, n := range nslice {
-		// n_L := real(n)
-		n_L := n
-		// TODO complex128 instead of float64:
-		// the following 4 lines are not needed then
-		// x := (math.Sin(phi_i) * n_air / n_L)
-		// if x > 1 || x < -1 || x == 0 {
-		// 	continue
-		// }
+	for _, n_L := range nslice {
 		// Calculate Delta and Psi for given lambda
 
 		// Snells law:
-		// TODO cplx.Asin()
 		phi_L := cmplx.Asin((cmplx.Sin(phi_i) * n_air) / n_L)
 		phi_S := cmplx.Asin((cmplx.Sin(phi_L) * n_L) / n_S)
 
 		// Fresnel equations:
 		//
 		// air/layer:
-		rs_al := (n_air*cmplx.Cos(phi_i) - n_L*cmplx.Cos(phi_L)) / (n_air * cmplx.Cos(phi_i+n_L*cmplx.Cos(phi_L)))
-		rp_al := (n_L*cmplx.Cos(phi_i)-n_air*cmplx.Cos(phi_L))/(n_L*cmplx.Cos(phi_i) + n_air*cmplx.Cos(phi_L))
+		rs_al := (n_air*cmplx.Cos(phi_i) - n_L  *cmplx.Cos(phi_L))/(n_air* cmplx.Cos(phi_i) + n_L  *cmplx.Cos(phi_L))
+		rp_al := (n_L  *cmplx.Cos(phi_i) - n_air*cmplx.Cos(phi_L))/(n_L  * cmplx.Cos(phi_i) + n_air*cmplx.Cos(phi_L))
 
 		// layer/substrate:
 		rs_ls := (n_L*cmplx.Cos(phi_L) - n_S*cmplx.Cos(phi_S))/(n_L*cmplx.Cos(phi_L) + n_S*cmplx.Cos(phi_S))
@@ -123,12 +113,12 @@ func Calc_rho(lambdafloat float64) (n_rho [][]complex128) {
 
 		beta := (2 * math.Pi / lambda) * d_L * n_L * cmplx.Cos(phi_L)
 
-		rp_L := (rp_al + rp_ls * cmplx.Exp(-2*beta)) / (1 + rp_al*rp_ls*cmplx.Exp(-2*beta))
+		rp_L := (rp_al + rp_ls * cmplx.Exp(1i*2*beta)) / (1 + rp_al*rp_ls*cmplx.Exp(1i*2*beta))
 
-		rs_L := (rs_al + rs_ls * cmplx.Exp(-2*beta)) / (1 + rs_al*rs_ls*cmplx.Exp(-2*beta))
+		rs_L := (rs_al + rs_ls * cmplx.Exp(1i*2*beta)) / (1 + rs_al*rs_ls*cmplx.Exp(1i*2*beta))
 
 		rho_L = rp_L / rs_L
-		row := []complex128{n, rho_L}
+		row := []complex128{n_L, rho_L}
 		output = append(output, row)
 	}
 	return output
@@ -136,7 +126,7 @@ func Calc_rho(lambdafloat float64) (n_rho [][]complex128) {
 
 func compare(n_rho [][]complex128, psi float64, delta float64) (n complex128) {
 	// TODO: Check if this works as intended
-	rho_giv := cmplx.Tan(complex(psi, 0)) * cmplx.Exp(complex(0, delta))
+	rho_giv := cmplx.Tan(complex(psi, 0)) * cmplx.Exp(complex(0,delta))
 	var deltas []float64 // delta = difference between given and calculated rho
 	for i := range n_rho {
 		delta := cmplx.Abs(n_rho[i][1] - rho_giv)
@@ -191,16 +181,15 @@ func main() {
 	//uncomment this and comment the for-loop to just calculate for 1 value
 	// i := 0
 	// lambda := 300.0
-	// start := time.Now()
 	for i, lambda := range df.Col("lambda").Float() {
-		rhodata := Calc_rho(lambda)
-		delta := df.Elem(i, 1).Float()
-		psi := df.Elem(i, 2).Float()
+		n_S := complex(df.Elem(i,3).Float(),df.Elem(i,4).Float()) // get refractive index of Substrate
+		rhodata := Calc_rho(lambda, n_S)
+		psi := df.Elem(i, 1).Float()
+		delta := df.Elem(i, 2).Float()
 		n := compare(rhodata, psi, delta)
 		nseries.Append(real(n))
 		kseries.Append(imag(n))
 	}
-	// fmt.Println("for-loop took ", time.Since(start))
 	df = df.Mutate(nseries)
 	df = df.Mutate(kseries)
 	plot_nk(df.Col("lambda").Float(), df.Col("n").Float(), df.Col("k").Float())
